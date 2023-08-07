@@ -7,6 +7,50 @@ import select
 
 
 logger = logging.getLogger('zelus')
+class Route():
+    def __init__(self, table, dst, gateway, interface):
+        self.table = table
+
+        with open('/etc/iproute2/rt_tables', 'r') as route_tables:
+            self._table_map = {}
+            for line in route_tables.readlines():
+                m = re.match(r'^(\d+)\s+(\w+)$', line)
+                if m is not None:
+                    self._table_map[m.group(2)] = int(m.group(1))
+                    logger.debug(
+                        f'Found table {m.group(1)}={m.group(2)} in rt_tables'
+                    )
+
+        try:
+            self.table_id = self._table_map[table]
+        except KeyError:
+            try:
+                # Maybe we passed a table id?
+                table_id = int(table)
+                self.table_id = table_id
+            except ValueError:
+                logger.error(
+                    f'Could not find table id for {table}. '
+
+        self.dst = dst
+        self.gateway = gateway
+
+        self.interface = interface
+
+        self.oif = None
+        interfaces = self._ipr.get_links()
+        for i in interfaces:
+            if i.get_attr('IFLA_IFNAME') == interface:
+                self.oif = i['index']
+
+        if self.oif == None:
+            try:
+                # Maybe we passed a interface id?
+                interface_id = int(interface)
+                self.oif = interface_id
+            except ValueError:
+                logger.error(
+                    f'Could not find interface id for {interface}. '
 
 
 class Mode(Enum):
@@ -19,12 +63,12 @@ class Zelus():
     def __init__(
             self, mode,
             monitored_interfaces, monitored_tables=['main'],
-            enforced_routes=[]):
+            protected_routes=[]):
 
         self.mode = mode
         logger.debug(f"Zelus in {mode} mode!")
 
-        self._enforced_routes = enforced_routes
+        self._protected_routes = protected_routes
 
         self._ipr = IPRoute()
 
@@ -121,6 +165,69 @@ class Zelus():
                 message.get_attr('RTA_OIF') in self._monitored_interfaces
             ):
                 logger.info(f'Detected change: {self.formatRoute(message)}')
+
+            if (
+                message['event'] == 'RTM_DELROUTE' and
+                self.mode in [Mode.ENFORCE, Mode.STRICT]
+            ):
+                self._enforceDeletedRoute(message)
+
+            if (
+                message['event'] == 'RTM_ADDROUTE' and
+                self.mode == Mode.STRICT
+            ):
+                self._enforceAddedRoute(message)
+
+    def routeProtected(self, msg):
+        '''Check if the route is in the protected routes list'''
+
+        for route in self._protected_routes:
+            # Check if the route is a protected route
+            if (
+                message.get_attr('RTA_TABLE') == route.table_id and
+                message.get_attr('RTA_OIF') == route.oif and
+                message.get_attr('RTA_DST') == route.dst and
+                message.get_attr('RTA_GATEWAY') = route.gateway
+            ):
+                return True
+
+            return False
+
+    def _enforceDeletedRoute(self, message):
+        '''
+        Check if the deleted route is in the protected route list and re-added it if it is.
+        '''
+        if message['event'] != 'RTM_DELROUTE':
+            return
+
+        if self.routeProtected(message) is False:
+            # Route is protected. re-add it
+            self._ipr.route(
+                'add',
+                dst = message.get_attr('RTA_DST')
+                gateway = message.get_attr('RTA_GATEWAY')
+                oif = message.get_attr('RTA_OIF')
+                table = message.get_attr('RTA_TABLE')
+            )
+            logger.info(f'Enforcing. Reverting {self.formatRoute(message)}')
+
+    def _enforceAddedRoute(self, message):
+        '''
+        Check if the added route is in the protected route list and delete it if it is not
+        '''
+        if message['event'] != 'RTM_ADDROUTE':
+            return
+
+        if self.routeProtected(message) is False:
+            # Route is not protected. Remove it
+            self._ipr.route(
+                'del',
+                dst = message.get_attr('RTA_DST')
+                gateway = message.get_attr('RTA_GATEWAY')
+                oif = message.get_attr('RTA_OIF')
+                table = message.get_attr('RTA_TABLE')
+            )
+            logger.info(f'Enforcing. Reverting {self.formatRoute(message)}')
 
     def _monitor(self):
         '''

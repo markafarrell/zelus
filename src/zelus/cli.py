@@ -36,8 +36,10 @@ def main():
         description='Monitor and enforce routes using netlink')
 
     # parser.add_argument('-c', '--config', default='config.yml')
-    parser.add_argument('-i', '--interface', action='append', required=True)
-    parser.add_argument('-t', '--table', action='append', default=['main'])
+    # parser.add_argument('-i', '--interface', action='append', required=True)
+    parser.add_argument('-i', '--interface', nargs='+', required=True)
+    # parser.add_argument('-t', '--table', action='append', default=['main'])
+    parser.add_argument('-t', '--table', nargs='+', default=['main'])
     parser.add_argument('--verbose', '-v', action='count', default=0)
     parser.add_argument(
         '--mode', '-m',

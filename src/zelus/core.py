@@ -8,18 +8,29 @@ import select
 
 logger = logging.getLogger('zelus')
 class Route():
-    def __init__(self, table, dst, gateway, interface):
+    def __init__(self, table, dest, gateway, interface):
         self.table = table
 
         with open('/etc/iproute2/rt_tables', 'r') as route_tables:
-            self._table_map = {}
+            self._table_map = {}  # This maps table names to table ids
+            self._table_id_map = {}  # This maps table ids to table names
             for line in route_tables.readlines():
                 m = re.match(r'^(\d+)\s+(\w+)$', line)
                 if m is not None:
                     self._table_map[m.group(2)] = int(m.group(1))
+                    self._table_id_map[int(m.group(1))] = m.group(2)
                     logger.debug(
                         f'Found table {m.group(1)}={m.group(2)} in rt_tables'
                     )
+
+        self._interface_map = {}  # This maps interface names to interface ids
+        self._interface_id_map = {}  # This maps interface ids to interface names
+
+        with IPRoute() as ipr:
+            interfaces = ipr.get_links()
+            for i in interfaces:
+                self._interface_id_map[i['index']] = i.get_attr('IFLA_IFNAME')
+                self._interface_map[i.get_attr('IFLA_IFNAME')] = i['index']
 
         try:
             self.table_id = self._table_map[table]
@@ -31,27 +42,39 @@ class Route():
             except ValueError:
                 logger.error(
                     f'Could not find table id for {table}. '
+                )
 
-        self.dst = dst
+        self.dest = dest
         self.gateway = gateway
 
         self.interface = interface
 
         self.oif = None
-        interfaces = self._ipr.get_links()
-        for i in interfaces:
-            if i.get_attr('IFLA_IFNAME') == interface:
-                self.oif = i['index']
 
-        if self.oif == None:
+        try:
+            self.oif = self._interface_map[interface]
+        except KeyError:
             try:
                 # Maybe we passed a interface id?
                 interface_id = int(interface)
                 self.oif = interface_id
             except ValueError:
                 logger.error(
-                    f'Could not find interface id for {interface}. '
+                    f'Could not find interface id for {interface}'
+                )
 
+    def getTableName(self):
+        return self._table_id_map[self.table_id]
+
+    def getInterfaceName(self):
+        return self._interface_id_map[self.oif]
+
+    def __format__(self, format_spec):
+        return (
+            f'table {self.getTableName()} '
+            f'{self.dest} via {self.gateway} dev {self.getInterfaceName()}'
+        )
+        return f''
 
 class Mode(Enum):
     MONITOR = 1
@@ -74,35 +97,43 @@ class Zelus():
 
         self.stop = threading.Event()
 
-        self._monitored_tables = []
         with open('/etc/iproute2/rt_tables', 'r') as route_tables:
-            self._table_map = {}
+            self._table_map = {}  # This maps table names to table ids
+            self._table_id_map = {}  # This maps table ids to table names
             for line in route_tables.readlines():
                 m = re.match(r'^(\d+)\s+(\w+)$', line)
                 if m is not None:
                     self._table_map[m.group(2)] = int(m.group(1))
+                    self._table_id_map[int(m.group(1))] = m.group(2)
                     logger.debug(
                         f'Found table {m.group(1)}={m.group(2)} in rt_tables'
                     )
 
-            for t in monitored_tables:
-                try:
-                    self._monitored_tables.append(self._table_map[t])
-                    logger.debug(f'Monitoring table {t}({self._table_map[t]})')
-                except KeyError:
-                    try:
-                        # Maybe we passed a table id?
-                        table_id = int(t)
-                        self._monitored_tables.append(table_id)
-                        logger.debug(f'Monitoring table UNKNOWN({table_id})')
-                    except ValueError:
-                        logger.error(
-                            f'Could not find table id for {t}. '
-                            f'Not monitoring this table')
-
-        self._monitored_interfaces = []
+        self._interface_map = {}  # This maps interface names to interface ids
+        self._interface_id_map = {}  # This maps interface ids to interface names
 
         interfaces = self._ipr.get_links()
+        for i in interfaces:
+            self._interface_id_map[i['index']] = i.get_attr('IFLA_IFNAME')
+            self._interface_map[i.get_attr('IFLA_IFNAME')] = i['index']
+
+        self._monitored_tables = []  # This is a list of table ids to monitor
+        for t in monitored_tables:
+            try:
+                self._monitored_tables.append(self._table_map[t])
+                logger.debug(f'Monitoring table {t}({self._table_map[t]})')
+            except KeyError:
+                try:
+                    # Maybe we passed a table id?
+                    table_id = int(t)
+                    self._monitored_tables.append(table_id)
+                    logger.debug(f'Monitoring table UNKNOWN({table_id})')
+                except ValueError:
+                    logger.error(
+                        f'Could not find table id for {t}. '
+                        f'Not monitoring this table')
+
+        self._monitored_interfaces = []  # This is a list of interface ids to monitor
         for m_i in monitored_interfaces:
             for i in interfaces:
                 if i.get_attr('IFLA_IFNAME') == m_i:
@@ -120,35 +151,28 @@ class Zelus():
         '''
         pass
 
-    def formatRoute(self, message):
-        if message['event'] == 'RTM_NEWROUTE':
-            action = 'add'
-        elif message['event'] == 'RTM_DELROUTE':
-            action = 'del'
-
-        table_id = message.get_attr('RTA_TABLE')
-
-        # Try to extract the nice table name
-        # If we can't just use the table_id
-        table_name = table_id
-
-        for (table, id) in self._table_map.items():
-            if table_id == id:
-                table_name = table
-                break
-
-        dest = message.get_attr('RTA_DST')
-        gw = message.get_attr('RTA_GATEWAY')
-
-        oif = message.get_attr('RTA_OIF')
-        oif_name = self._ipr.get_links(oif)[0].get_attr('IFLA_IFNAME')
-
+    def formatRoute(self, action, route):
         return (
-            f'ip route {action} table {table_name} '
-            f'{dest} via {gw} dev {oif_name}'
+            f'ip route {action} {route}'
         )
 
     def monitor(self):
+        for route in self._ipr.get_routes():
+            if (
+                route.get_attr("RTA_TABLE") in self._monitored_tables and
+                route.get_attr("RTA_OIF") in self._monitored_interfaces
+            ):
+                logger.debug(f'Route found: {route}')
+                r = Route(
+                    table=self._table_id_map[route.get_attr("RTA_TABLE")],
+                    dest=route.get_attr('RTA_DST'),
+                    gateway=route.get_attr('RTA_GATEWAY'),
+                    interface=self._interface_id_map[route.get_attr('RTA_OIF')]
+                )
+                logger.info(
+                    f'Route found: ip route add {r}'
+                )
+
         thread = threading.Thread(target=self._monitor)
         thread.start()
         return thread
@@ -178,7 +202,7 @@ class Zelus():
             ):
                 self._enforceAddedRoute(message)
 
-    def routeProtected(self, msg):
+    def routeProtected(self, message):
         '''Check if the route is in the protected routes list'''
 
         for route in self._protected_routes:
@@ -187,7 +211,7 @@ class Zelus():
                 message.get_attr('RTA_TABLE') == route.table_id and
                 message.get_attr('RTA_OIF') == route.oif and
                 message.get_attr('RTA_DST') == route.dst and
-                message.get_attr('RTA_GATEWAY') = route.gateway
+                message.get_attr('RTA_GATEWAY') == route.gateway
             ):
                 return True
 
@@ -204,9 +228,9 @@ class Zelus():
             # Route is protected. re-add it
             self._ipr.route(
                 'add',
-                dst = message.get_attr('RTA_DST')
-                gateway = message.get_attr('RTA_GATEWAY')
-                oif = message.get_attr('RTA_OIF')
+                dst = message.get_attr('RTA_DST'),
+                gateway = message.get_attr('RTA_GATEWAY'),
+                oif = message.get_attr('RTA_OIF'),
                 table = message.get_attr('RTA_TABLE')
             )
             logger.info(f'Enforcing. Reverting {self.formatRoute(message)}')
@@ -222,9 +246,9 @@ class Zelus():
             # Route is not protected. Remove it
             self._ipr.route(
                 'del',
-                dst = message.get_attr('RTA_DST')
-                gateway = message.get_attr('RTA_GATEWAY')
-                oif = message.get_attr('RTA_OIF')
+                dst = message.get_attr('RTA_DST'),
+                gateway = message.get_attr('RTA_GATEWAY'),
+                oif = message.get_attr('RTA_OIF'),
                 table = message.get_attr('RTA_TABLE')
             )
             logger.info(f'Enforcing. Reverting {self.formatRoute(message)}')

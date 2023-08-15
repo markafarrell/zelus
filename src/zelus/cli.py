@@ -1,20 +1,30 @@
+import os
 import argparse
 import logging
-# import yaml
+import pkgutil
 from .core import Zelus, Mode
 
 logger = logging.getLogger('zelus')
 
+install_files = [
+    {
+        "source": "data/zelus.service",
+        "dest": "etc/systemd/system/zelus.service",
+        "replace": True
+    },
+    {
+        "source": "data/zelus.yml",
+        "dest": "etc/zelus/zelus.yml",
+        "replace": False
+    }
+]
+
 
 def setLoggingLevel(verbosity):
-    if verbosity == 1:
-        logging.basicConfig(level=logging.WARNING)
-    elif verbosity == 2:
+    if verbosity == 0:
         logging.basicConfig(level=logging.INFO)
-    elif verbosity >= 3:
+    elif verbosity >= 1:
         logging.basicConfig(level=logging.DEBUG)
-    else:
-        logging.basicConfig(level=logging.ERROR)
 
 
 def parseMode(mode):
@@ -26,8 +36,30 @@ def parseMode(mode):
         return Mode.STRICT
 
 
-def cb(msg):
-    print(msg)
+def install(install_root='/'):
+    # Ensure directories exist
+    os.makedirs(
+        os.path.join(
+            install_root,
+            'etc/zelus'
+        ),
+        mode=0o700,
+        exist_ok=True
+    )
+
+    for f in install_files:
+
+        if (
+            not os.path.isfile(os.path.join(install_root, f['dest'])) or
+            f['replace']
+        ):
+            with open(os.path.join(install_root, f['dest']), 'w') as out_file:
+                out_file.write(
+                    pkgutil.get_data(
+                        "zelus",
+                        f["source"]
+                    ).decode()
+                )
 
 
 def main():
@@ -35,12 +67,22 @@ def main():
         prog='zelus',
         description='Monitor and enforce routes using netlink')
 
-    # parser.add_argument('-c', '--config', default='config.yml')
-    # parser.add_argument('-i', '--interface', action='append', required=True)
-    parser.add_argument('-i', '--interface', nargs='+', required=True)
-    # parser.add_argument('-t', '--table', action='append', default=['main'])
-    parser.add_argument('-t', '--table', nargs='+', default=['main'])
-    parser.add_argument('--verbose', '-v', action='count', default=0)
+    parser.add_argument('-c', '--config', default='config.yml')
+    parser.add_argument(
+        '-i', '--interface',
+        nargs='+', required=True,
+        default=os.environ.get('ZELUS_MONITORED_INTERFACES', 'eth0')
+    )
+    parser.add_argument(
+        '-t', '--table',
+        nargs='+',
+        default=os.environ.get('ZELUS_MONITORED_TABLES', 'main').split()
+    )
+    parser.add_argument(
+        '--verbose', '-v',
+        action='count',
+        default=int(os.environ.get('ZELUS_LOGLEVEL', '0'))
+    )
     parser.add_argument(
         '--mode', '-m',
         choices=[
@@ -48,7 +90,7 @@ def main():
             'enforce',
             'strict'
         ],
-        default='monitor')
+        default='enforce')
 
     args = parser.parse_args()
 
@@ -63,7 +105,8 @@ def main():
     z = Zelus(
         mode=parseMode(args.mode),
         monitored_interfaces=args.interface,
-        monitored_tables=args.table
+        monitored_tables=args.table,
+        configuration_path=args.config
     )
 
     h = z.monitor()

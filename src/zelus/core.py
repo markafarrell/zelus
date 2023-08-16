@@ -812,10 +812,12 @@ class Zelus():
         it if it is.
         '''
 
-        if self.routeProtected(route) is False:
+        if self.routeProtected(route) is True:
             # Route is protected. re-add it
             route.add(self._ipr)
             logger.info(f'Enforcing. Reverting {self.formatRoute("add", route)}')
+        else:
+            logger.info(f'Route ({route}) not protected. Not reverting.')
 
     def _enforceAddedRoute(self, route):
         '''
@@ -827,6 +829,8 @@ class Zelus():
             # Route is not protected. Remove it
             route.delete(self._ipr)
             logger.info(f'Enforcing. Reverting {self.formatRoute("del", route)}')
+        else:
+            logger.info(f'Route ({route}) not protected. Not reverting.')
 
     def _monitor(self):
         '''

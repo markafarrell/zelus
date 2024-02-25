@@ -25,7 +25,8 @@ dependencies = [
   "argparse",
   "pyaml",
   "watchdog",
-  "jinja2"
+  "jinja2",
+  "prometheus-client"
 ]
 
 [project.optional-dependencies]

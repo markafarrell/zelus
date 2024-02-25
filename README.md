@@ -29,13 +29,19 @@ docker build -t markfarrell/zelus .
 
 ```
 docker build -t markfarrell/zelus . && \
-docker run --rm -it --name zelus --cap-add NET_ADMIN markfarrell/zelus
+docker run --rm -it --name zelus --cap-add NET_ADMIN -p 9123:9123 markfarrell/zelus --mode=strict
 ```
 
 ### Exec into container
 
 ```
 docker exec -it zelus /bin/sh
+```
+
+### Test prometheus metrics
+
+```
+curl http://localhost:9123/metrics
 ```
 
 ## Testing

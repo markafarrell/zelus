@@ -725,7 +725,7 @@ class Zelus():
                 new_protected_route = self._route_builder.build(**route)  # Pass in dictionary as kwargs
                 logger.info(f"Protecting route {new_protected_route}")
                 new_protected_routes.append(new_protected_route)
-                self.self._protected_routes_gauge.inc()
+                self._protected_routes_gauge.inc()
 
             except Exception as ex:
                 logger.critical(f"Could not build route for {route}. {ex}")
@@ -858,7 +858,7 @@ class Zelus():
             self._routes_removed_counter.inc()
             logger.info(f'Enforcing. Reverting {self.formatRoute("del", route)}')
         else:
-            logger.info(f'Route ({route}) not protected. Not reverting.')
+            logger.info(f'Route ({route}) protected. Not reverting.')
 
     def _monitor(self):
         '''

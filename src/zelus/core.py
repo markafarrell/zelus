@@ -537,9 +537,8 @@ class ConfigurationHandler(FileSystemEventHandler):
         self._zelus = zelus
 
     def on_modified(self, event):
-        if not event.is_directory:
-            logger.info(f"Configuration changed detected. Reloading. {event}")
-            self._zelus._loadConfiguration()
+        logger.info(f"Configuration changed detected. Reloading. {event}")
+        self._zelus._loadConfiguration()
 
 
 class Zelus():
@@ -629,16 +628,16 @@ class Zelus():
         config_observer = Observer()
         config_handler = ConfigurationHandler(self)
 
+        config_directory = os.path.dirname(
+            os.path.expanduser(self._configuration_path)
+        )
+
+        logger.info(f"Watching config director: {config_directory} for changes.")
+
         # Here we watch the directory containing the configuration file for changes
-        # If the file is a symlink we watch the directory that contains the linked file
-        # not the symlink
         config_observer.schedule(
             config_handler,
-            os.path.dirname(
-                os.path.realpath(
-                    os.path.expanduser(self._configuration_path)
-                )
-            )
+            config_directory
         )
 
         config_observer.start()

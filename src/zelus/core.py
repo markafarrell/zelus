@@ -8,7 +8,7 @@ import yaml
 from jinja2 import Environment, FileSystemLoader
 import jinja2
 
-from watchdog.observers.polling import PollingObserver as Observer
+from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler
 from pyroute2 import IPRoute
 
@@ -629,9 +629,16 @@ class Zelus():
         config_observer = Observer()
         config_handler = ConfigurationHandler(self)
 
+        # Here we watch the directory containing the configuration file for changes
+        # If the file is a symlink we watch the directory that contains the linked file
+        # not the symlink
         config_observer.schedule(
             config_handler,
-            os.path.expanduser(self._configuration_path)
+            os.path.dirname(
+                os.path.realpath(
+                    os.path.expanduser(self._configuration_path)
+                )
+            )
         )
 
         config_observer.start()

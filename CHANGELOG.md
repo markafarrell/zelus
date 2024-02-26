@@ -12,6 +12,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - **Fixed** for any bug fixes.
 - **Security** in case of vulnerabilities.
 
+## [0.2.2] - 2024-02-26
+### Fixed
+- Correctly detect config changes when config file is a symlink
+
 ## [0.2.1] - 2024-02-26
 ### Fixed
 - Correctly handle SIGTERM

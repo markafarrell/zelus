@@ -12,6 +12,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - **Fixed** for any bug fixes.
 - **Security** in case of vulnerabilities.
 
+## [0.2.4] - 2024-02-26
+### Added
+- Add hostname to prometheus metrics
+
 ## [0.2.3] - 2024-02-26
 ### Fixed
 - Correctly detect config changes when config file is a symlink (FOR GOOD.... HOPEFULLY)

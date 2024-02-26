@@ -100,6 +100,11 @@ def main():
         ],
         default='enforce')
 
+    parser.add_argument(
+        '--hostname',
+        default=os.environ.get('HOSTNAME')
+    )
+
     args = parser.parse_args()
 
     setLoggingLevel(args.verbose)
@@ -114,7 +119,8 @@ def main():
         mode=parseMode(args.mode),
         monitored_interfaces=args.interface,
         monitored_tables=args.table,
-        configuration_path=args.config
+        configuration_path=args.config,
+        hostname=args.hostname
     )
 
     h = z.monitor()

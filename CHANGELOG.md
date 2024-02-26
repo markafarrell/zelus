@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 ## [0.2.1] - 2024-02-26
 ### Fixed
 - Correctly handle SIGTERM
+- Correctly detect config changes when config file is a symlink
 
 ## [0.2.0] - 2024-02-26
 ### Added

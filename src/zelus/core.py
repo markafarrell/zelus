@@ -544,17 +544,20 @@ class ConfigurationHandler(FileSystemEventHandler):
 class Zelus():
     def __init__(
             self, mode,
-            monitored_interfaces, monitored_tables=['main'],
+            monitored_interfaces,
+            hostname,
+            monitored_tables=['main'],
             configuration_path="zelus.yml"):
 
         self.mode = mode
+        self._hostname = hostname
 
-        self._monitored_tables_gauge = Gauge("tables_monitored_count", "Number of monitored tables.")
-        self._monitored_interfaces_gauge = Gauge("interfaces_monitored_count", "Number of monitored interfaces.")
-        self._protected_routes_gauge = Gauge("routes_protected_count", "Number of protected routes.")
-        self._routes_added_counter = Counter("routes_added_count", "Number of added routes.")
-        self._routes_removed_counter = Counter("routes_removed_count", "Number of removed routes.")
-        self._route_updates_counter = Counter("route_updates_count", "Number of route updates received.")
+        self._monitored_tables_gauge = Gauge("tables_monitored_count", "Number of monitored tables.", ["hostname"])
+        self._monitored_interfaces_gauge = Gauge("interfaces_monitored_count", "Number of monitored interfaces.", ["hostname"])
+        self._protected_routes_gauge = Gauge("routes_protected_count", "Number of protected routes.", ["hostname"])
+        self._routes_added_counter = Counter("routes_added_count", "Number of added routes.", ["hostname"])
+        self._routes_removed_counter = Counter("routes_removed_count", "Number of removed routes.", ["hostname"])
+        self._route_updates_counter = Counter("route_updates_count", "Number of route updates received.", ["hostname"])
 
         # Start prometheus server
         start_http_server(9123)
@@ -576,20 +579,20 @@ class Zelus():
         self.interface_map = InterfaceMap()
 
         self._monitored_tables = []  # This is a list of table ids to monitor
-        self._monitored_tables_gauge.set(0)
+        self._monitored_tables_gauge.labels(hostname=self._hostname).set(0)
         for t in monitored_tables:
             try:
                 table_id = self.table_map.getTableId(t)
                 self._monitored_tables.append(table_id)
                 table_name = self.table_map.getTableName(table_id)
-                self._monitored_tables_gauge.inc()
+                self._monitored_tables_gauge.labels(hostname=self._hostname).inc()
                 logger.debug(f'Monitoring table {table_name}({table_id})')
             except KeyError:
                 try:
                     # Maybe we passed a table id?
                     table_id = int(t)
                     self._monitored_tables.append(table_id)
-                    self._monitored_tables_gauge.inc()
+                    self._monitored_tables_gauge.labels(hostname=self._hostname).inc()
                     logger.debug(f'Monitoring table UNKNOWN({table_id})')
                 except ValueError:
                     logger.error(
@@ -598,12 +601,12 @@ class Zelus():
 
         # This is a list of interface ids to monitor
         self._monitored_interfaces = []
-        self._monitored_interfaces_gauge.set(0)
+        self._monitored_interfaces_gauge.labels(hostname=self._hostname).set(0)
 
         for interface_name in monitored_interfaces:
             interface_id = self.interface_map.getInterfaceId(interface_name)
             self._monitored_interfaces.append(interface_id)
-            self._monitored_interfaces_gauge.inc()
+            self._monitored_interfaces_gauge.labels(hostname=self._hostname).inc()
             i_name = self.interface_map.getInterfaceName(interface_id)
             logger.debug(
                 f"Monitoring interface {i_name}({interface_id})"
@@ -611,7 +614,7 @@ class Zelus():
 
         self._configuration_path = configuration_path
         self._protected_routes = []
-        self._protected_routes_gauge.set(0)
+        self._protected_routes_gauge.labels(hostname=self._hostname).set(0)
 
         self.loadConfiguration()
 
@@ -648,7 +651,7 @@ class Zelus():
         and interfaces to be monitored
         '''
         protected_routes = []
-        self._protected_routes_gauge.set(0)
+        self._protected_routes_gauge.labels(hostname=self._hostname).set(0)
 
         try:
             # 1. Use config file as jinja2 template
@@ -731,7 +734,7 @@ class Zelus():
                 new_protected_route = self._route_builder.build(**route)  # Pass in dictionary as kwargs
                 logger.info(f"Protecting route {new_protected_route}")
                 new_protected_routes.append(new_protected_route)
-                self._protected_routes_gauge.inc()
+                self._protected_routes_gauge.labels(hostname=self._hostname).inc()
 
             except Exception as ex:
                 logger.critical(f"Could not build route for {route}. {ex}")
@@ -771,7 +774,7 @@ class Zelus():
                     logger.info(f'Missing initial route. Enforcing. {self.formatRoute("add", route)}')
                     try:
                         route.add(self._ipr)
-                        self._routes_added_counter.inc()
+                        self._routes_added_counter.labels(hostname=self._hostname).inc()
                     except Exception as ex:
                         logger.critical(f'Unable to add route. {self.formatRoute("add", route)} Exception: {ex}')
                 else:
@@ -785,7 +788,7 @@ class Zelus():
                     logger.info(f'Extra initial route. Enforcing. {self.formatRoute("del", route)}')
                     try:
                         route.delete(self._ipr)
-                        self._routes_removed_counter.inc()
+                        self._routes_removed_counter.labels(hostname=self._hostname).inc()
                     except Exception as ex:
                         logger.critical(f'Unable to delete route. {self.formatRoute("del", route)} Exception: {ex}')
 
@@ -810,7 +813,7 @@ class Zelus():
 
                 logger.debug(f'{route}')
 
-                self._route_updates_counter.inc()
+                self._route_updates_counter.labels(hostname=self._hostname).inc()
 
                 if message['event'] == 'RTM_DELROUTE':
                     logger.info(
@@ -847,7 +850,7 @@ class Zelus():
         if self.routeProtected(route) is True:
             # Route is protected. re-add it
             route.add(self._ipr)
-            self._routes_added_counter.inc()
+            self._routes_added_counter.labels(hostname=self._hostname).inc()
             logger.info(f'Enforcing. Reverting {self.formatRoute("add", route)}')
         else:
             logger.info(f'Route ({route}) not protected. Not reverting.')
@@ -861,7 +864,7 @@ class Zelus():
         if self.routeProtected(route) is False:
             # Route is not protected. Remove it
             route.delete(self._ipr)
-            self._routes_removed_counter.inc()
+            self._routes_removed_counter.labels(hostname=self._hostname).inc()
             logger.info(f'Enforcing. Reverting {self.formatRoute("del", route)}')
         else:
             logger.info(f'Route ({route}) protected. Not reverting.')

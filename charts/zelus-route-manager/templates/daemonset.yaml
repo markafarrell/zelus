@@ -43,6 +43,9 @@ spec:
           image: {{ include "zelus-route-manager.image" . }}
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           args:
+            {{- range .Values.interfaces }}
+            - --interface={{ . }}
+            {{- end }}
             {{- with .Values.extraArgs }}
             {{- toYaml . | nindent 12 }}
             {{- end }}

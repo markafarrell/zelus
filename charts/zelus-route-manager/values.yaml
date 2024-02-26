@@ -224,6 +224,8 @@ configMapOverrideName: ""
 ## Extra labels for zelus-route-manager ConfigMap
 extraConfigmapLabels: {}
 
+interfaces: ['eth0']
+
 ## List of routes to protect
 protectedRoutes: []
   # - dst_len: 0  # Default route

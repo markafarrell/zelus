@@ -8,7 +8,7 @@ import yaml
 from jinja2 import Environment, FileSystemLoader
 import jinja2
 
-from watchdog.observers import Observer
+from watchdog.observers.polling import PollingObserver as Observer
 from watchdog.events import FileSystemEventHandler
 from pyroute2 import IPRoute
 

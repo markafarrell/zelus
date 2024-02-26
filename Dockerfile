@@ -14,4 +14,4 @@ RUN rm -rf /tmp/zelus
 
 ENV ZELUS_LOGLEVEL=0
 
-ENTRYPOINT ["/usr/local/bin/zelus", "-i", "eth0", "-c", "/etc/zelus/zelus.yml"]
+ENTRYPOINT ["/usr/local/bin/zelus", "-c", "/etc/zelus/zelus.yml"]

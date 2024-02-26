@@ -20,3 +20,14 @@ export KUBECONFIG=${PWD}/container-data/etc/rancher/k3s/k3s.yaml
 
 helm install -n zelus --create-namespace zelus zelus-route-manager-0.0.1.tgz
 ```
+
+# Installing Helm Chart
+
+```
+helm repo add zelus https://markafarrell.github.io/zelus/
+helm search repo zelus
+helm install -n zelus --create-namespace zelus zelus/zelus-route-manager
+
+helm upgrade -n zelus --create-namespace zelus zelus/zelus-route-manager
+```
+

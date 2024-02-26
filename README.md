@@ -29,7 +29,7 @@ docker build -t markfarrell/zelus .
 
 ```
 docker build -t markfarrell/zelus . && \
-docker run --rm -it --name zelus --cap-add NET_ADMIN -p 9123:9123 markfarrell/zelus --mode=strict --interface eth0
+docker run --rm -it --name zelus --volume $(pwd)/docker-data/etc/zelus:/etc/zelus --cap-add NET_ADMIN -p 9123:9123 markfarrell/zelus --interface eth0
 ```
 
 ### Exec into container

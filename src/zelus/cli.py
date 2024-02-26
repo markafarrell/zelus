@@ -2,6 +2,7 @@ import os
 import argparse
 import logging
 import pkgutil
+import signal
 from .core import Zelus, Mode
 
 logger = logging.getLogger('zelus')
@@ -62,7 +63,14 @@ def install(install_root='/'):
                 )
 
 
+def sigterm_handler(signal, frame):
+    print("Exiting!")
+    exit(0)
+
+
 def main():
+    signal.signal(signal.SIGTERM, sigterm_handler)
+
     parser = argparse.ArgumentParser(
         prog='zelus',
         description='Monitor and enforce routes using netlink')

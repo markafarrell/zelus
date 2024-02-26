@@ -7,6 +7,29 @@ entries:
         - name: Chart Source
           url: https://github.com/markafarrel/zelus
     apiVersion: v2
+    appVersion: 0.2.3
+    created: "2024-02-26T05:12:44.131509353Z"
+    description: A Helm chart for zelus-route-manager
+    digest: 7b3278c84ef3ce9df126f776e0f01d931e4e7b3dd96c80dfefacd31c6c58738e
+    home: https://github.com/markafarrell/zelus
+    keywords:
+    - zelus-route-manager
+    maintainers:
+    - email: mark.andrew.farrell@gmail.com
+      name: markafarrell
+    name: zelus-route-manager
+    sources:
+    - https://github.com/markafarrell/zelus
+    type: application
+    urls:
+    - https://github.com/markafarrell/zelus/releases/download/zelus-route-manager-1.0.2/zelus-route-manager-1.0.2.tgz
+    version: 1.0.2
+  - annotations:
+      artifacthub.io/license: Apache-2.0
+      artifacthub.io/links: |-
+        - name: Chart Source
+          url: https://github.com/markafarrel/zelus
+    apiVersion: v2
     appVersion: 0.2.2
     created: "2024-02-26T04:46:36.375699812Z"
     description: A Helm chart for zelus-route-manager
@@ -47,4 +70,4 @@ entries:
     urls:
     - https://github.com/markafarrell/zelus/releases/download/zelus-route-manager-1.0.0/zelus-route-manager-1.0.0.tgz
     version: 1.0.0
-generated: "2024-02-26T04:46:36.375711494Z"
+generated: "2024-02-26T05:12:44.131523749Z"

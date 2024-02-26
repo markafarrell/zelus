@@ -1,7 +1,0 @@
-After=multi-user.target[Service]
-Type=simple
-Restart=always
-ExecStart=zelus -c /etc/zelus/zelus.yml
-
-[Install]
-WantedBy=multi-user.target

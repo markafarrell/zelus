@@ -781,17 +781,6 @@ class Zelus():
                     logger.info(f'Missing initial route: {route}')
         self._protected_routes_lock.release()
 
-        if self.mode == Mode.STRICT:
-            logger.info("Removing unprotected routes")
-            for route in initial_routes:
-                if route not in self._protected_routes:
-                    logger.info(f'Extra initial route. Enforcing. {self.formatRoute("del", route)}')
-                    try:
-                        route.delete(self._ipr)
-                        self._routes_removed_counter.labels(hostname=self._hostname).inc()
-                    except Exception as ex:
-                        logger.critical(f'Unable to delete route. {self.formatRoute("del", route)} Exception: {ex}')
-
         logger.info("Initial sync completed.")
 
     def monitor(self):

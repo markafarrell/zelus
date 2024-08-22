@@ -432,7 +432,7 @@ class Route():
             f = f + f'{route_type} '
 
         if self.dst is not None:
-            if self.dst == 32:
+            if self.dst_len == 32:
                 f = f + f'{self.dst} '
             else:
                 f = f + f'{self.dst}/{self.dst_len} '
@@ -638,7 +638,7 @@ class Zelus():
             os.path.expanduser(self._configuration_path)
         )
 
-        logger.info(f"Watching config director: {config_directory} for changes.")
+        logger.info(f"Watching config directory: {config_directory} for changes.")
 
         # Here we watch the directory containing the configuration file for changes
         config_observer.schedule(

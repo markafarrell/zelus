@@ -12,6 +12,11 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - **Fixed** for any bug fixes.
 - **Security** in case of vulnerabilities.
 
+## [0.2.5] - 2024-02-26
+### Fixed
+- Added dst_len to route format string
+- Fixed logic for initial sync in STRICT mode. Previously we were attempting to do a double delete of unprotected routes
+
 ## [0.2.4] - 2024-02-26
 ### Added
 - Add hostname to prometheus metrics

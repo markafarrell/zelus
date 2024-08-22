@@ -432,7 +432,10 @@ class Route():
             f = f + f'{route_type} '
 
         if self.dst is not None:
-            f = f + f'{self.dst} '
+            if self.dst == 32:
+                f = f + f'{self.dst} '
+            else:
+                f = f + f'{self.dst}/{self.dst_len} '
         else:
             f = f + 'default '
 

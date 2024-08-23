@@ -12,6 +12,14 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - **Fixed** for any bug fixes.
 - **Security** in case of vulnerabilities.
 
+## [0.2.6] - 2024-08-23
+### Added
+- helm chart: Default pod annotations to support prometheus scraping
+### Changed
+- helm chart: Disable service by default
+### Fixed
+- Fix guage metric names to follow standard
+
 ## [0.2.5] - 2024-02-26
 ### Fixed
 - Added dst_len to route format string

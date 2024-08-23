@@ -5,7 +5,7 @@ keywords:
   - zelus-route-manager
 type: application
 version: 1.0.4
-appVersion: 0.2.5
+appVersion: 0.2.6
 home: https://github.com/markafarrell/zelus
 sources:
   - https://github.com/markafarrell/zelus

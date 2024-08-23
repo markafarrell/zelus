@@ -555,9 +555,9 @@ class Zelus():
         self.mode = mode
         self._hostname = hostname
 
-        self._monitored_tables_gauge = Gauge("tables_monitored_count", "Number of monitored tables.", ["hostname"])
-        self._monitored_interfaces_gauge = Gauge("interfaces_monitored_count", "Number of monitored interfaces.", ["hostname"])
-        self._protected_routes_gauge = Gauge("routes_protected_count", "Number of protected routes.", ["hostname"])
+        self._monitored_tables_gauge = Gauge("tables_monitored", "Number of monitored tables.", ["hostname"])
+        self._monitored_interfaces_gauge = Gauge("interfaces_monitored", "Number of monitored interfaces.", ["hostname"])
+        self._protected_routes_gauge = Gauge("routes_protected", "Number of protected routes.", ["hostname"])
         self._routes_added_counter = Counter("routes_added_count", "Number of added routes.", ["hostname"])
         self._routes_removed_counter = Counter("routes_removed_count", "Number of removed routes.", ["hostname"])
         self._route_updates_counter = Counter("route_updates_count", "Number of route updates received.", ["hostname"])

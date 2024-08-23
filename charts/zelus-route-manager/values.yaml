@@ -121,6 +121,9 @@ affinity: {}
 
 # Annotations to be added to zelus-route-manager pods
 podAnnotations:
+  prometheus.io/scrape: "true"
+  prometheus.io/path: "/"
+  prometheus.io/port: "9123"
   # Fix for very slow GKE cluster upgrades
   # cluster-autoscaler.kubernetes.io/safe-to-evict: "true"
 
